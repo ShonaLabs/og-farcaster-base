@@ -1,0 +1,9 @@
+{
+  "network": "baseSepolia",
+  "farcasterOG": "0xc6b82bbE0Bb9bBc3D45cce4BC303A3B25c065Dfd",
+  "merkleClaim": "0x4cbbf3a99660DDe629761e70ed396f6Dd8303393",
+  "royaltyBasisPoints": 500,
+  "royaltyReceiver": "0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9",
+  "baseURI": "ipfs://QmXj6BmdPKtFsfev7oTSGRXvgEunzXtwi8ua6CCg7sp4SM/",
+  "timestamp": "2025-05-24T19:15:54.947Z"
+}

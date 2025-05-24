@@ -1,0 +1,9 @@
+{
+  "network": "base",
+  "farcasterOG": "0xd6226Eb26A1306DAA2Ca96752DF3A0E62ef6b289",
+  "merkleClaim": "0x02a837A421101eb874CcfA20F3c1921f3f62D1b9",
+  "royaltyBasisPoints": 500,
+  "royaltyReceiver": "0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9",
+  "baseURI": "ipfs://QmXj6BmdPKtFsfev7oTSGRXvgEunzXtwi8ua6CCg7sp4SM/",
+  "timestamp": "2025-05-24T19:45:34.311Z"
+}

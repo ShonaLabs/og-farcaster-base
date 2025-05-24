@@ -1,0 +1,30 @@
+{
+  "name": "farcaster-og-migration",
+  "version": "1.0.0",
+  "description": "Migration of Farcaster OG NFTs from Zora to Base",
+  "scripts": {
+    "snapshot": "bun x hardhat run scripts/getZoraSnapshot.ts",
+    "generate-merkle": "bun x hardhat run scripts/generateMerkleRoot.ts",
+    "deploy": "bun x hardhat run scripts/deployToBase.ts --network base",
+    "deploy:sepolia": "bun x hardhat run scripts/deployToBase.ts --network baseSepolia",
+    "testing": "bun x hardhat test",
+    "compile": "bun x hardhat compile"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "ethereum-waffle": "^4.0.10",
+    "hardhat": "^2.24.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.3.0",
+    "axios": "^1.9.0",
+    "dotenv": "^16.5.0",
+    "ethers": "5.7.2",
+    "form-data": "^4.0.2",
+    "merkletreejs": "^0.5.2",
+    "thirdweb": "^5.101.1"
+  }
+}
