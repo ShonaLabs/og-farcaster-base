@@ -1,6 +1,8 @@
 import { useReadContract, useWriteContract, useAccount } from 'wagmi'
 import { nfts } from '../abis/nfts'
 import { merkleAbi } from '../abis/merkle'
+import { verifyProof } from '../merkle/utils'
+import { merkleRoot } from '../merkle/merkleRoot'
 
 // Kontrak addresses dari deployment
 const FARCASTER_OG_ADDRESS = '0xd6226Eb26A1306DAA2Ca96752DF3A0E62ef6b289'
@@ -60,15 +62,42 @@ export const useTokenClaimStatus = (tokenId: number) => {
 
 export const useMerkleClaim = () => {
   const { writeContractAsync, isPending, isError, error, isSuccess } = useWriteContract()
+  const { address } = useAccount()
 
   const claimToken = async (tokenId: number, proof: `0x${string}`[]) => {
-    return await writeContractAsync({
-      address: MERKLE_CLAIM_ADDRESS,
-      abi: merkleAbi,
-      functionName: 'claimToken',
-      args: [BigInt(tokenId), proof],
-    })
+    if (!address) throw new Error('Wallet not connected')
+    
+    console.log('Claiming token', tokenId, 'with proof:', proof)
+    
+    try {
+      // Verifikasi proof di client-side sebelum mengirim transaksi
+      // Ini membantu mencegah transaksi yang akan gagal
+      const isValidProof = verifyProof(tokenId, address, proof as string[], merkleRoot)
+      
+      if (!isValidProof) {
+        console.error('Invalid merkle proof! Transaction would fail on-chain')
+        throw new Error('Invalid merkle proof. Please check if you are eligible to claim this token.')
+      }
+      
+      console.log('Proof valid, submitting transaction...')
+      
+      return await writeContractAsync({
+        address: MERKLE_CLAIM_ADDRESS,
+        abi: merkleAbi,
+        functionName: 'claimToken',
+        args: [BigInt(tokenId), proof],
+      })
+    } catch (error) {
+      console.error('Error claiming token:', error)
+      throw error
+    }
   }
 
-  return { claimToken, isPending, isError, error, isSuccess }
+  // Fungsi untuk memverifikasi proof tanpa mengirim transaksi
+  const verifyTokenProof = (tokenId: number, proof: `0x${string}`[]) => {
+    if (!address) return false
+    return verifyProof(tokenId, address, proof as string[], merkleRoot)
+  }
+
+  return { claimToken, verifyTokenProof, isPending, isError, error, isSuccess }
 } 

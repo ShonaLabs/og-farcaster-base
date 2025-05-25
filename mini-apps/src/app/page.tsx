@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Image from "next/image"
 import { sdk } from '@farcaster/frame-sdk'
 import { Button } from "@/components/ui/button"
@@ -9,10 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAccount } from 'wagmi'
 import { useMerkleClaim } from '@/hooks/useContract'
 import { merkleProofs } from '@/merkle/merkleProofs'
+import { merkleRoot } from '@/merkle/merkleRoot'
+import { logMerkleDebugInfo } from '@/merkle/utils'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
-  const { claimToken } = useMerkleClaim()
+  const { claimToken, verifyTokenProof } = useMerkleClaim()
+  const [proofStatus, setProofStatus] = useState<'valid' | 'invalid' | 'checking' | null>(null)
 
   // Initialize and mark app as ready
   useEffect(() => {
@@ -31,24 +34,93 @@ export default function Home() {
   const userProof = address && merkleProofs ? 
     merkleProofs.find(p => p.owner.toLowerCase() === address.toLowerCase()) : null
 
+  // Log untuk debugging dan verifikasi proof
+  useEffect(() => {
+    if (userProof && address) {
+      setProofStatus('checking')
+      console.log('User found in merkle proofs:', userProof)
+      console.log('Merkle root being used:', merkleRoot)
+      
+      // Debugging merkle proof validitas
+      logMerkleDebugInfo(
+        Number(userProof.tokenId),
+        address,
+        Array.from(userProof.proof) as string[],
+        merkleRoot
+      )
+      
+      // Verifikasi proof
+      try {
+        const mutableProof = Array.from(userProof.proof) as `0x${string}`[]
+        const isValid = verifyTokenProof(Number(userProof.tokenId), mutableProof)
+        setProofStatus(isValid ? 'valid' : 'invalid')
+      } catch (error) {
+        console.error('Error verifying proof:', error)
+        setProofStatus('invalid')
+      }
+    } else if (address) {
+      console.log('User not found in merkle proofs. Address:', address)
+      setProofStatus(null)
+    }
+  }, [address, userProof, verifyTokenProof])
+
   // Handle claim function
   const handleClaim = async () => {
     if (!address || !userProof) return
     
     try {
+      console.log('Starting claim process for token:', userProof.tokenId)
+      console.log('Using merkle root:', merkleRoot)
+      
+      // Ensure tokenId is a number
+      const tokenId = Number(userProof.tokenId)
+      
       // Convert readonly array to mutable array
       const mutableProof = Array.from(userProof.proof) as `0x${string}`[]
-      await claimToken(userProof.tokenId, mutableProof)
+      console.log('Using proof:', mutableProof)
+      
+      await claimToken(tokenId, mutableProof)
       
       // Create cast about successful claim
       try {
-        await sdk.actions.composeCast({ text: `I just claimed Farcaster OG NFT token ID ${userProof.tokenId} on Base! 🎉` })
+        await sdk.actions.composeCast({ text: `I just claimed Farcaster OG NFT token ID ${tokenId} on Base! 🎉` })
       } catch (castError) {
         console.error('Error composing cast:', castError)
       }
     } catch (error) {
       console.error('Error claiming token:', error)
     }
+  }
+
+  // Helper to render proof status badge
+  const renderProofStatus = () => {
+    if (!userProof) return null
+    
+    if (proofStatus === 'checking') {
+      return (
+        <div className="px-3 py-1 text-xs bg-yellow-500/20 text-yellow-400 rounded-full animate-pulse">
+          Verifying proof...
+        </div>
+      )
+    }
+    
+    if (proofStatus === 'valid') {
+      return (
+        <div className="px-3 py-1 text-xs bg-green-500/20 text-green-400 rounded-full">
+          Proof Valid ✓
+        </div>
+      )
+    }
+    
+    if (proofStatus === 'invalid') {
+      return (
+        <div className="px-3 py-1 text-xs bg-red-500/20 text-red-400 rounded-full">
+          Invalid Proof ✗
+        </div>
+      )
+    }
+    
+    return null
   }
 
   return (
@@ -60,7 +132,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           {/* Repo Link */}
           <a 
-            href="https://github.com/user/FarcasterOG" 
+            href="https://github.com/ShonaLabs/og-farcaster-base" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="p-2 hover:bg-zinc-800 rounded-full transition-colors" 
@@ -125,6 +197,9 @@ export default function Home() {
             <p className="text-zinc-300 mb-4">
               Celebrating Farcaster at permissionless
             </p>
+            
+            {/* Add the proof status badge */}
+            {renderProofStatus()}
           </div>
 
           {/* Links Section */}
@@ -192,10 +267,16 @@ export default function Home() {
             ) : userProof ? (
               <Button
                 onClick={handleClaim}
+                disabled={proofStatus !== 'valid'}
                 size="lg"
-                className="bg-[#615FFF] hover:bg-[#4f4dcc] text-white px-12 py-3 rounded-xl font-semibold shadow-lg shadow-[#615FFF]/30 hover:shadow-[#4f4dcc]/40 transition-all duration-200"
+                className={`px-12 py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 ${
+                  proofStatus === 'valid' 
+                    ? 'bg-[#615FFF] hover:bg-[#4f4dcc] text-white shadow-[#615FFF]/30 hover:shadow-[#4f4dcc]/40' 
+                    : 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                }`}
               >
-                Migrate
+                {proofStatus === 'checking' ? 'Verifying...' : 
+                 proofStatus === 'invalid' ? 'Invalid Proof' : 'Migrate'}
               </Button>
             ) : (
               <Button
